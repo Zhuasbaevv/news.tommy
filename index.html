@@ -1,73 +1,112 @@
-<
-
-<div class="news-card">
-    <button class="del-btn" style="display:block" onclick="this.parentElement.remove();save();">Удалить</button>
-    <div class="news-title">Так так</div>
-    <img src="https://www.kinopoisk.ru/series/1398913/">
-    <div class="news-content"><p>Винченцо</p></div>
-</div>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новости Tommy</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; margin: 0; background: #fff; padding-bottom: 70px; }
+        header { padding: 15px; border-bottom: 1px solid #eee; position: sticky; top: 0; background: #fff; z-index: 100; }
+        h1 { font-size: 20px; margin: 0; font-weight: 900; cursor: pointer; }
+        .container { max-width: 600px; margin: 0 auto; padding: 10px; }
+        .news-card { margin-bottom: 30px; border-bottom: 1px solid #f2f2f2; padding-bottom: 15px; }
+        .news-title { font-size: 22px; font-weight: 800; line-height: 1.2; margin-bottom: 10px; color: #000; }
+        .news-card img { width: 100%; border-radius: 8px; display: block; margin: 10px 0; }
+        .news-content { font-size: 17px; line-height: 1.5; color: #333; }
         
+        /* Админка */
+        #admin-panel { display: none; background: #f4f4f4; padding: 15px; border-radius: 10px; border: 2px solid #000; margin-bottom: 20px; }
+        input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .btn { background: #000; color: #fff; padding: 12px; border: none; width: 100%; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
+        .btn-red { background: #ff3b30; }
+
+        /* Навигация */
+        .nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; border-top: 1px solid #eee; padding: 10px 0; }
+        .nav-item { flex: 1; text-align: center; font-size: 10px; color: #8e8e93; font-weight: bold; }
+        .nav-item div { font-size: 18px; }
+    </style>
+</head>
+<body>
+
+<header><h1 onclick="adminLogin()">Новости Tommy</h1></header>
+
+<div class="container">
+    <div id="admin-panel">
+        <input type="text" id="t" placeholder="Заголовок">
+        <input type="text" id="i" placeholder="Фото (напр. 1.jpg)">
+        <textarea id="tx" rows="4" placeholder="Текст"></textarea>
+        <button class="btn" onclick="add()">ОПУБЛИКОВАТЬ</button>
+        <button class="btn btn-red" onclick="clean()">УДАЛИТЬ ВСЁ</button>
     </div>
+
+    <div id="feed">
+        </div>
 </div>
 
-<nav class="bottom-nav">
-    <div class="nav-item active"><div>📰</div>NEWS</div>
+<div class="nav">
+    <div class="nav-item" style="color:#28a745"><div>📰</div>NEWS</div>
     <div class="nav-item"><div>⚽</div>SPORT</div>
     <div class="nav-item"><div>🏥</div>HEALTH</div>
-    <div class="nav-item"><div>🚗</div>AUTO</div>
-    <div class="nav-item" onclick="openAdmin()"><div>⚙️</div>МЕНЮ</div>
-</nav>
+    <div class="nav-item"><div>⚙️</div>МЕНЮ</div>
+</div>
 
 <script>
-    let TOKEN = "";
-    const REPO = "Zhuasbaevv/news.tommy";
-    let clicks = 0;
+    let token = "";
+    const repo = "Zhuasbaevv/news.tommy";
+    let c = 0;
 
-    function openAdmin() {
-        clicks++;
-        if (clicks === 5 || event.currentTarget.innerText === '⚙️МЕНЮ') {
-            TOKEN = prompt("Введите GitHub Token:");
-            if (TOKEN) {
-                document.getElementById('admin-panel').style.display = 'block';
-                document.querySelectorAll('.del-btn').forEach(b => b.style.display = 'block');
-            }
-            clicks = 0;
+    function adminLogin() {
+        c++;
+        if(c >= 5) {
+            token = prompt("Токен:");
+            if(token) document.getElementById('admin-panel').style.display='block';
+            c = 0;
         }
     }
 
-    async function resetAll() {
-        if(confirm("Удалить все посты и сделать сайт чистым?")) {
-            document.getElementById('news-container').innerHTML = '';
+    async function add() {
+        const title = document.getElementById('t').value;
+        const img = document.getElementById('i').value;
+        const text = document.getElementById('tx').value;
+        const html = `<div class="news-card"><div class="news-title">${title}</div>${img ? `<img src="${img}">` : ''}<div class="news-content">${text}</div></div>`;
+        document.getElementById('feed').insertAdjacentHTML('afterbegin', html);
+        await save();
+    }
+
+    async function clean() {
+        if(confirm("Удалить всё?")) {
+            document.getElementById('feed').innerHTML = '';
             await save();
         }
     }
 
-    async function post() {
-        const title = document.getElementById('t').value;
-        const img = document.getElementById('i').value;
-        const text = document.getElementById('txt').value;
-        if (!title || !text) return alert("Заполни заголовок и текст!");
-
-        const html = `
-<div class="news-card">
-    <button class="del-btn" style="display:block" onclick="this.parentElement.remove();save();">Удалить</button>
-    <div class="news-title">${title}</div>
-    ${img ? `<img src="${img}">` : ''}
-    <div class="news-content"><p>${text.replace(/\n/g, '<br>')}</p></div>
-</div>`;
-
-        document.getElementById('news-container').insertAdjacentHTML('afterbegin', html);
-        await save();
-    }
-
     async function save() {
-        try {
-            const r = await fetch(`https://api.github.com/repos/${REPO}/contents/index.html`);
-            const d = await r.json();
-            const code = decodeURIComponent(escape(atob(d.content)));
-            
-            const startTag = "";
-            const parts = code.split(startTag);
-            
-            const newPosts = document.getElementById('news-container').innerHTML;
-            const updatedCode = parts[0] + startTag + "\n" + newPosts + "\n    </div>\n</div>\n\n
+        const url = `https://api.github.com/repos/${repo}/contents/index.html`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const fullCode = decodeURIComponent(escape(atob(data.content)));
+        
+        const startMark = "";
+        const endMark = "</div>\n</div>\n\n<div class=\"nav\">";
+        
+        const part1 = fullCode.split(startMark)[0];
+        const part2 = fullCode.split(endMark)[1];
+        const newFeed = document.getElementById('feed').innerHTML;
+        
+        const finalContent = part1 + startMark + "\n" + newFeed + "\n    </div>\n</div>\n\n<div class=\"nav\">" + part2;
+
+        await fetch(url, {
+            method: "PUT",
+            headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: "update",
+                content: btoa(unescape(encodeURIComponent(finalContent))),
+                sha: data.sha
+            })
+        });
+        alert("Готово! Подожди 1 минуту и обнови страницу.");
+        location.reload();
+    }
+</script>
+</body>
+</html>
