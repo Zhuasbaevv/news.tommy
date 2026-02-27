@@ -1,16 +1,142 @@
-<
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новости Tommy</title>
+    <style>
+        /* Весь внешний вид сайта здесь */
+        body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #fff; color: #000; padding-bottom: 80px; }
+        header { padding: 15px 20px; border-bottom: 1px solid #eee; position: sticky; top: 0; background: #fff; z-index: 100; }
+        h1 { font-size: 20px; margin: 0; font-weight: 900; letter-spacing: -0.5px; cursor: pointer; }
+        
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+        
+        /* Карточка новости */
+        .news-card { margin-bottom: 35px; border-bottom: 1px solid #f2f2f2; padding-bottom: 20px; position: relative; }
+        .news-title { font-size: 24px; font-weight: 800; line-height: 1.1; margin-bottom: 12px; display: block; color: #000; text-decoration: none; }
+        
+        /* Стили для фото */
+        .news-card img { width: 100%; height: auto; border-radius: 8px; margin-top: 10px; display: block; background: #f0f0f0; }
+        .photo-credit { font-size: 11px; color: #999; margin-top: 5px; margin-bottom: 15px; }
+        
+        .news-content p { font-size: 18px; line-height: 1.4; color: #333; margin: 15px 0; }
 
-<div class="news-card">
-    <button class="del-btn" style="display:block" onclick="deletePost(this)">Удалить</button>
-    <div class="news-title">лооох</div>
-    <img src="Без моего.jpg">
-    <div class="photo-credit">Фото: твой источник</div>
-    <div class="news-content">
-        <p>Винченцо</p>
+        /* Админка (скрытая) */
+        #admin-panel { display: none; background: #f4f4f4; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #000; }
+        input, textarea { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .btn { background: #000; color: #fff; padding: 15px; border: none; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .del-btn { display: none; color: #ff3b30; background: none; border: none; padding: 0; font-size: 13px; cursor: pointer; margin-bottom: 10px; font-weight: bold; }
+
+        /* Нижнее меню как на скрине */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; border-top: 1px solid #eee; padding: 10px 0; justify-content: space-around; }
+        .nav-item { text-align: center; font-size: 10px; color: #8e8e93; font-weight: bold; text-transform: uppercase; }
+        .nav-item div { font-size: 20px; margin-bottom: 2px; }
+        .nav-item.active { color: #28a745; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 onclick="handleSecretClick()">Новости Tommy</h1>
+</header>
+
+<div class="container">
+    <div id="admin-panel">
+        <input type="text" id="post-title" placeholder="Заголовок новости (крупно)">
+        <input type="text" id="img-url" placeholder="Имя файла фото (например 1.jpg)">
+        <textarea id="news-text" rows="5" placeholder="Текст новости..."></textarea>
+        <button class="btn" onclick="publishNews()">ОПУБЛИКОВАТЬ</button>
+    </div>
+
+    <div id="news-container">
+        <div class="news-card">
+            <div class="news-title">В Казахстане запустили новый новостной портал</div>
+            <div class="news-content">
+                <p>Теперь следить за событиями стало проще. Сайт Tommy News начал свою работу в тестовом режиме.</p>
+            </div>
+        </div>
     </div>
 </div>
-        
-</div>
-</div>
+
+<nav class="bottom-nav">
+    <div class="nav-item active"><div>📰</div>NEWS</div>
+    <div class="nav-item"><div>⚽</div>SPORT</div>
+    <div class="nav-item"><div>🏥</div>HEALTH</div>
+    <div class="nav-item"><div>🚗</div>AUTO</div>
+    <div class="nav-item"><div>⚙️</div>МЕНЮ</div>
+</nav>
+
+<script>
+    let GITHUB_TOKEN = "";
+    const REPO = "Zhuasbaevv/news.tommy";
+    let clicks = 0;
+
+    function handleSecretClick() {
+        clicks++;
+        if (clicks === 5) {
+            GITHUB_TOKEN = prompt("Введите токен доступа:");
+            if (GITHUB_TOKEN) {
+                document.getElementById('admin-panel').style.display = 'block';
+                document.querySelectorAll('.del-btn').forEach(b => b.style.display = 'block');
+            }
+            clicks = 0;
+        }
+    }
+
+    async function publishNews() {
+        const title = document.getElementById('post-title').value;
+        const img = document.getElementById('img-url').value;
+        const text = document.getElementById('news-text').value;
+
+        const newHtml = `
+<div class="news-card">
+    <button class="del-btn" style="display:block" onclick="deletePost(this)">[Удалить]</button>
+    <div class="news-title">${title}</div>
+    ${img ? `<img src="${img}">` : ''}
+    <div class="photo-credit">Фото: Источник новости</div>
+    <div class="news-content"><p>${text.replace(/\n/g, '<br>')}</p></div>
+</div>`;
+
+        document.getElementById('news-container').insertAdjacentHTML('afterbegin', newHtml);
+        await saveToGithub();
+    }
+
+    async function deletePost(btn) {
+        if(confirm("Удалить новость?")) {
+            btn.parentElement.remove();
+            await saveToGithub();
+        }
+    }
+
+    async function saveToGithub() {
+        try {
+            const res = await fetch(`https://api.github.com/repos/${REPO}/contents/index.html`);
+            const data = await res.json();
+            const currentCode = decodeURIComponent(escape(atob(data.content)));
+
+            const newContent = document.getElementById('news-container').innerHTML;
+            const startTag = "";
+            
+            // Собираем код обратно
+            const before = currentCode.split(startTag)[0];
+            const after = currentCode.split('</div>\n</div>\n\n<nav')[1];
+            
+            const finalCode = before + startTag + "\n" + newContent + "\n    </div>\n</div>\n\n<nav" + after;
+
+            await fetch(`https://api.github.com/repos/${REPO}/contents/index.html`, {
+                method: "PUT",
+                headers: { "Authorization": `token ${GITHUB_TOKEN}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message: "New post added",
+                    content: btoa(unescape(encodeURIComponent(finalCode))),
+                    sha: data.sha
+                })
+            });
+            alert("Опубликовано! Перезагрузите через минуту.");
+            location.reload();
+        } catch (e) { alert("Ошибка: " + e); }
+    }
+</script>
 </body>
 </html>
