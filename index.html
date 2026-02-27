@@ -1,42 +1,110 @@
 <!DOCTYPE html>
-<html lang="kk">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TengriNews Clone</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Новости Томми</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        :root { --main-color: #2c3e50; --accent-color: #e74c3c; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f0f2f5; color: #333; }
+        
+        header { background: var(--main-color); color: white; padding: 20px 0; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .logo { font-size: 2.5rem; font-weight: bold; letter-spacing: 2px; }
+        
+        .container { max-width: 900px; margin: 20px auto; padding: 0 20px; }
+        
+        /* Админка */
+        #admin-panel { background: white; padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 2px solid #ddd; }
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        button { background: var(--accent-color); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+
+        /* Карточки новостей */
+        .news-card { background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; }
+        .news-card h2 { margin-top: 0; color: var(--main-color); }
+        .news-card p { line-height: 1.6; color: #555; }
+        .date { font-size: 0.8rem; color: #999; }
+        .delete-btn { position: absolute; top: 15px; right: 15px; color: #ccc; cursor: pointer; border: none; background: none; font-size: 1.2rem; }
+        .delete-btn:hover { color: red; }
+    </style>
 </head>
 <body>
 
 <header>
-    <div class="container">
-        <h1>TENGRINEWS CLONE</h1>
-        <nav>
-            <ul>
-                <li><a href="#">Главная</a></li>
-                <li><a href="#">Политика</a></li>
-                <li><a href="#">Спорт</a></li>
-                <li><button id="adminBtn">Админка</button></li>
-            </ul>
-        </nav>
-    </div>
+    <div class="logo">НОВОСТИ ТОММИ</div>
 </header>
 
-<main class="container">
-    <section id="adminPanel" class="hidden">
-        <h2>Добавить новость</h2>
-        <input type="text" id="newsTitle" placeholder="Заголовок">
-        <textarea id="newsContent" placeholder="Текст новости"></textarea>
-        <button onclick="addNews()">Опубликовать</button>
-    </section>
+<div class="container">
+    <div id="admin-panel">
+        <h3>Добавить новую новость</h3>
+        <input type="text" id="title" placeholder="Заголовок новости...">
+        <textarea id="content" rows="4" placeholder="Текст новости..."></textarea>
+        <button onclick="publishNews()">Опубликовать на сайт</button>
+    </div>
 
-    <section id="newsFeed">
-        <h2>Последние новости</h2>
-        <div id="postsContainer">
-            </div>
-    </section>
-</main>
+    <div id="news-feed">
+        <p>Загрузка свежих новостей...</p>
+    </div>
+</div>
 
-<script src="script.js"></script>
+<script>
+    // ВСТАВЬ СВОЙ КОНФИГ ИЗ FIREBASE ТУТ:
+    const firebaseConfig = {
+        apiKey: "ВАШ_КЛЮЧ",
+        authDomain: "PROJECT.firebaseapp.com",
+        projectId: "PROJECT_ID",
+        storageBucket: "PROJECT.appspot.com",
+        messagingSenderId: "ID",
+        appId: "APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Функция публикации
+    async function publishNews() {
+        const title = document.getElementById('title').value;
+        const content = document.getElementById('content').value;
+
+        if (!title || !content) return alert("Заполни все поля!");
+
+        await db.collection("news").add({
+            title: title,
+            content: content,
+            date: new Date().toLocaleString()
+        });
+
+        document.getElementById('title').value = '';
+        document.getElementById('content').value = '';
+    }
+
+    // Слушатель обновлений (автоматически обновляет страницу при добавлении)
+    db.collection("news").orderBy("date", "desc").onSnapshot((snapshot) => {
+        const feed = document.getElementById('news-feed');
+        feed.innerHTML = '';
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            feed.innerHTML += `
+                <div class="news-card">
+                    <button class="delete-btn" onclick="deleteNews('${doc.id}')">×</button>
+                    <div class="date">${data.date}</div>
+                    <h2>${data.title}</h2>
+                    <p>${data.content}</p>
+                </div>
+            `;
+        });
+    });
+
+    // Функция удаления
+    async function deleteNews(id) {
+        if(confirm("Удалить этот пост?")) {
+            await db.collection("news").doc(id).delete();
+        }
+    }
+</script>
+
 </body>
 </html>
