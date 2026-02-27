@@ -1,13 +1,52 @@
-<
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новости Tommy</title>
+    <style>
+        /* Стиль как у настоящего СМИ */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #fff; color: #1a1a1a; padding-bottom: 80px; }
+        header { padding: 18px 20px; border-bottom: 1px solid #eee; background: white; position: sticky; top: 0; z-index: 1000; }
+        h1 { font-size: 24px; margin: 0; font-weight: 900; cursor: pointer; color: #000; letter-spacing: -1px; }
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
 
-<div class="news-card">
-    <button class="del-btn" style="display:block" onclick="this.parentElement.remove();save();">Удалить</button>
-    <div class="news-title">Первый пост нашего сайта</div>
-    <img src="Без моего.jpg">
-    <div class="news-content"><p>Винченцо</p></div>
-</div>
+        /* Карточка новости */
+        .news-card { margin-bottom: 40px; border-bottom: 1px solid #f0f0f0; padding-bottom: 25px; position: relative; }
+        .news-title { font-size: 26px; font-weight: 800; line-height: 1.15; margin-bottom: 15px; color: #000; }
+        .news-card img { width: 100%; height: auto; border-radius: 4px; margin: 10px 0; display: block; background: #f9f9f9; }
+        .news-content p { font-size: 19px; line-height: 1.5; color: #333; margin: 15px 0; }
         
+        .del-btn { display: none; color: #ff3b30; border: 1px solid #ff3b30; background: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-bottom: 15px; font-weight: bold; }
+
+        /* Админка (Скрытая) */
+        #admin-panel { display: none; background: #f4f4f4; padding: 25px; border-radius: 12px; border: 2px solid #000; margin-bottom: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        input, textarea { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; font-family: inherit; }
+        .btn { background: #000; color: #fff; padding: 16px; border: none; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn-red { background: #ff3b30; margin-top: 10px; }
+
+        /* Навигация внизу */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; border-top: 1px solid #eee; padding: 12px 0; justify-content: space-around; z-index: 1000; }
+        .nav-item { text-align: center; font-size: 10px; color: #8e8e93; font-weight: 800; text-transform: uppercase; cursor: pointer; }
+        .nav-item div { font-size: 24px; margin-bottom: 3px; }
+        .nav-item.active { color: #28a745; }
+    </style>
+</head>
+<body>
+
+<header><h1 onclick="openAdmin()">Новости Tommy</h1></header>
+
+<div class="container">
+    <div id="admin-panel">
+        <input type="text" id="t" placeholder="ЗАГОЛОВОК НОВОСТИ">
+        <input type="text" id="i" placeholder="Название фото (1.jpg) или прямая ссылка">
+        <textarea id="txt" rows="6" placeholder="Текст новости..."></textarea>
+        <button class="btn" onclick="post()">ОПУБЛИКОВАТЬ</button>
+        <button class="btn btn-red" onclick="resetAll()">СБРОСИТЬ ВСЁ (ОЧИСТИТЬ)</button>
     </div>
+
+    <div id="news-container">
+        </div>
 </div>
 
 <nav class="bottom-nav">
@@ -15,7 +54,7 @@
     <div class="nav-item"><div>⚽</div>SPORT</div>
     <div class="nav-item"><div>🏥</div>HEALTH</div>
     <div class="nav-item"><div>🚗</div>AUTO</div>
-    <div class="nav-item"><div>⚙️</div>МЕНЮ</div>
+    <div class="nav-item" onclick="openAdmin()"><div>⚙️</div>МЕНЮ</div>
 </nav>
 
 <script>
@@ -23,10 +62,10 @@
     const REPO = "Zhuasbaevv/news.tommy";
     let clicks = 0;
 
-    function handleSecretClick() {
+    function openAdmin() {
         clicks++;
-        if (clicks === 5) {
-            TOKEN = prompt("Введите токен:");
+        if (clicks === 5 || event.currentTarget.innerText === '⚙️МЕНЮ') {
+            TOKEN = prompt("Введите GitHub Token:");
             if (TOKEN) {
                 document.getElementById('admin-panel').style.display = 'block';
                 document.querySelectorAll('.del-btn').forEach(b => b.style.display = 'block');
@@ -35,24 +74,25 @@
         }
     }
 
-    async function clearAll() {
-        if(confirm("Удалить все новости?")) {
+    async function resetAll() {
+        if(confirm("Удалить все посты и сделать сайт чистым?")) {
             document.getElementById('news-container').innerHTML = '';
             await save();
         }
     }
 
-    async function publishNews() {
-        const t = document.getElementById('post-title').value;
-        const i = document.getElementById('img-url').value;
-        const txt = document.getElementById('news-text').value;
+    async function post() {
+        const title = document.getElementById('t').value;
+        const img = document.getElementById('i').value;
+        const text = document.getElementById('txt').value;
+        if (!title || !text) return alert("Заполни заголовок и текст!");
 
         const html = `
 <div class="news-card">
     <button class="del-btn" style="display:block" onclick="this.parentElement.remove();save();">Удалить</button>
-    <div class="news-title">${t}</div>
-    ${i ? `<img src="${i}">` : ''}
-    <div class="news-content"><p>${txt.replace(/\n/g, '<br>')}</p></div>
+    <div class="news-title">${title}</div>
+    ${img ? `<img src="${img}">` : ''}
+    <div class="news-content"><p>${text.replace(/\n/g, '<br>')}</p></div>
 </div>`;
 
         document.getElementById('news-container').insertAdjacentHTML('afterbegin', html);
@@ -60,9 +100,29 @@
     }
 
     async function save() {
-        const res = await fetch(`https://api.github.com/repos/${REPO}/contents/index.html`);
-        const data = await res.json();
-        const code = decodeURIComponent(escape(atob(data.content)));
-        const start = "";
-        const parts = code.split(start);
-        const final = parts[0] + start + "\n" + document.getElementById('news-container').innerHTML + "\n    </div>\n</div>\n\n
+        try {
+            const r = await fetch(`https://api.github.com/repos/${REPO}/contents/index.html`);
+            const d = await r.json();
+            const code = decodeURIComponent(escape(atob(d.content)));
+            
+            const startTag = "";
+            const parts = code.split(startTag);
+            
+            const newPosts = document.getElementById('news-container').innerHTML;
+            const updatedCode = parts[0] + startTag + "\n" + newPosts + "\n    </div>\n</div>\n\n<nav" + code.split('<nav')[1];
+
+            const res = await fetch(`https://api.github.com/repos/${REPO}/contents/index.html`, {
+                method: "PUT",
+                headers: { "Authorization": `token ${TOKEN}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ message: "Update site content", content: btoa(unescape(encodeURIComponent(updatedCode))), sha: d.sha })
+            });
+
+            if(res.ok) {
+                alert("✅ Опубликовано! Сайт станет красивым через 30-60 секунд.");
+                location.reload();
+            } else { alert("Ошибка сохранения! Проверь токен."); }
+        } catch (e) { alert("Ошибка: " + e); }
+    }
+</script>
+</body>
+</html>
