@@ -6,102 +6,159 @@
     <title>Новости Томми</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     
     <style>
-        :root { --main-color: #2c3e50; --accent-color: #e74c3c; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f0f2f5; color: #333; }
+        :root { --main: #1a1a1a; --accent: #ff4757; --bg: #f4f7f6; }
+        body { font-family: 'Helvetica Neue', sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
         
-        header { background: var(--main-color); color: white; padding: 20px 0; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .logo { font-size: 2.5rem; font-weight: bold; letter-spacing: 2px; }
-        
-        .container { max-width: 900px; margin: 20px auto; padding: 0 20px; }
-        
-        /* Админка */
-        #admin-panel { background: white; padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 2px solid #ddd; }
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        button { background: var(--accent-color); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        button:hover { opacity: 0.9; }
+        header { background: var(--main); color: white; padding: 30px; text-align: center; border-bottom: 5px solid var(--accent); }
+        .container { max-width: 800px; margin: auto; padding: 20px; }
 
-        /* Карточки новостей */
-        .news-card { background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; }
-        .news-card h2 { margin-top: 0; color: var(--main-color); }
-        .news-card p { line-height: 1.6; color: #555; }
-        .date { font-size: 0.8rem; color: #999; }
-        .delete-btn { position: absolute; top: 15px; right: 15px; color: #ccc; cursor: pointer; border: none; background: none; font-size: 1.2rem; }
-        .delete-btn:hover { color: red; }
+        /* Админка */
+        #admin-panel { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 40px; }
+        .admin-locked { text-align: center; padding: 20px; border: 2px dashed #ccc; border-radius: 15px; cursor: pointer; }
+        
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .file-label { display: inline-block; background: #eee; padding: 10px; border-radius: 8px; cursor: pointer; margin: 10px 0; }
+        
+        button { background: var(--accent); color: white; border: none; padding: 15px 30px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #ff6b81; }
+
+        /* Посты */
+        .post { background: white; border-radius: 15px; overflow: hidden; margin-bottom: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); position: relative; }
+        .post img { width: 100%; max-height: 450px; object-fit: cover; display: block; }
+        .post-content { padding: 20px; }
+        .post h2 { margin: 0 0 10px 0; color: var(--main); }
+        .post p { color: #444; line-height: 1.6; white-space: pre-wrap; }
+        .post .date { font-size: 12px; color: #aaa; margin-bottom: 10px; }
+        
+        .del-btn { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: white; border-radius: 50%; width: 30px; height: 30px; border: none; cursor: pointer; display: none; }
+        .post:hover .del-btn { display: block; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="logo">НОВОСТИ ТОММИ</div>
+    <h1>НОВОСТИ ТОММИ</h1>
 </header>
 
 <div class="container">
-    <div id="admin-panel">
-        <h3>Добавить новую новость</h3>
-        <input type="text" id="title" placeholder="Заголовок новости...">
-        <textarea id="content" rows="4" placeholder="Текст новости..."></textarea>
-        <button onclick="publishNews()">Опубликовать на сайт</button>
+    <div id="lock-screen" class="admin-locked" onclick="checkPass()">
+        🔒 Нажмите, чтобы войти как Томми
     </div>
 
-    <div id="news-feed">
-        <p>Загрузка свежих новостей...</p>
+    <div id="admin-panel" class="hidden">
+        <h3>Новый пост</h3>
+        <input type="text" id="title" placeholder="Заголовок темы...">
+        <textarea id="content" rows="5" placeholder="Что произошло?"></textarea>
+        
+        <label class="file-label">
+            📸 Выбрать фото с устройства
+            <input type="file" id="photoInput" accept="image/*" class="hidden">
+        </label>
+        <div id="status"></div>
+        
+        <button id="pubBtn" onclick="uploadAndPublish()">Опубликовать новость</button>
     </div>
+
+    <div id="news-feed"></div>
 </div>
 
 <script>
-    // ВСТАВЬ СВОЙ КОНФИГ ИЗ FIREBASE ТУТ:
+    // ВСТАВЬТЕ СВОЙ CONFIG НИЖЕ
     const firebaseConfig = {
-        apiKey: "ВАШ_КЛЮЧ",
-        authDomain: "PROJECT.firebaseapp.com",
-        projectId: "PROJECT_ID",
-        storageBucket: "PROJECT.appspot.com",
+        apiKey: "КЛЮЧ",
+        authDomain: "ID.firebaseapp.com",
+        projectId: "ID",
+        storageBucket: "ID.appspot.com",
         messagingSenderId: "ID",
-        appId: "APP_ID"
+        appId: "ID"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const storage = firebase.storage();
 
-    // Функция публикации
-    async function publishNews() {
-        const title = document.getElementById('title').value;
-        const content = document.getElementById('content').value;
+    let isTommy = false;
 
-        if (!title || !content) return alert("Заполни все поля!");
-
-        await db.collection("news").add({
-            title: title,
-            content: content,
-            date: new Date().toLocaleString()
-        });
-
-        document.getElementById('title').value = '';
-        document.getElementById('content').value = '';
+    // 1. Простая проверка пароля
+    function checkPass() {
+        const pass = prompt("Введите пароль админа:");
+        if (pass === "1234") { // ЗАМЕНИТЕ "1234" НА СВОЙ ПАРОЛЬ
+            isTommy = true;
+            document.getElementById('admin-panel').classList.remove('hidden');
+            document.getElementById('lock-screen').classList.add('hidden');
+            renderPosts(); // Перерисовать, чтобы появились кнопки удаления
+        } else {
+            alert("Неверно!");
+        }
     }
 
-    // Слушатель обновлений (автоматически обновляет страницу при добавлении)
-    db.collection("news").orderBy("date", "desc").onSnapshot((snapshot) => {
+    // 2. Функция загрузки фото и данных
+    async function uploadAndPublish() {
+        const title = document.getElementById('title').value;
+        const content = document.getElementById('content').value;
+        const file = document.getElementById('photoInput').files[0];
+        const btn = document.getElementById('pubBtn');
+        const status = document.getElementById('status');
+
+        if (!title || !content) return alert("Заполни текст!");
+        
+        btn.disabled = true;
+        status.innerText = "Загрузка... подождите";
+
+        let imageUrl = "";
+
+        // Если фото выбрано, загружаем его в Storage
+        if (file) {
+            const storageRef = storage.ref('news_photos/' + Date.now() + "_" + file.name);
+            const snapshot = await storageRef.put(file);
+            imageUrl = await snapshot.ref.getDownloadURL();
+        }
+
+        // Сохраняем пост в базу
+        await db.collection("tommy_news").add({
+            title,
+            content,
+            image: imageUrl,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Сброс формы
+        document.getElementById('title').value = "";
+        document.getElementById('content').value = "";
+        document.getElementById('photoInput').value = "";
+        btn.disabled = false;
+        status.innerText = "Опубликовано!";
+    }
+
+    // 3. Отображение новостей
+    db.collection("tommy_news").orderBy("timestamp", "desc").onSnapshot(snapshot => {
         const feed = document.getElementById('news-feed');
-        feed.innerHTML = '';
-        snapshot.forEach((doc) => {
-            const data = doc.data();
+        feed.innerHTML = "";
+        snapshot.forEach(doc => {
+            const post = doc.data();
+            const date = post.timestamp ? post.timestamp.toDate().toLocaleString() : "...";
+            
             feed.innerHTML += `
-                <div class="news-card">
-                    <button class="delete-btn" onclick="deleteNews('${doc.id}')">×</button>
-                    <div class="date">${data.date}</div>
-                    <h2>${data.title}</h2>
-                    <p>${data.content}</p>
+                <div class="post">
+                    ${isTommy ? `<button class="del-btn" onclick="deletePost('${doc.id}')">×</button>` : ''}
+                    ${post.image ? `<img src="${post.image}">` : ''}
+                    <div class="post-content">
+                        <div class="date">${date}</div>
+                        <h2>${post.title}</h2>
+                        <p>${post.content}</p>
+                    </div>
                 </div>
             `;
         });
     });
 
-    // Функция удаления
-    async function deleteNews(id) {
-        if(confirm("Удалить этот пост?")) {
-            await db.collection("news").doc(id).delete();
+    async function deletePost(id) {
+        if(confirm("Удалить новость?")) {
+            await db.collection("tommy_news").doc(id).delete();
         }
     }
 </script>
