@@ -1,51 +1,6 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Новости Tommy</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #fff; color: #1a1a1a; padding-bottom: 70px; }
-        header { padding: 15px 20px; border-bottom: 1px solid #eee; background: white; position: sticky; top: 0; z-index: 1000; }
-        h1 { font-size: 22px; margin: 0; font-weight: 800; cursor: pointer; }
-        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+<
 
-        /* Стиль новости */
-        .news-card { margin-bottom: 30px; border-bottom: 1px solid #f0f0f0; padding-bottom: 20px; position: relative; }
-        .news-title { font-size: 24px; font-weight: 800; line-height: 1.2; margin-bottom: 10px; color: #000; }
-        .news-card img { width: 100%; height: auto; border-radius: 4px; margin: 10px 0; display: block; background: #f9f9f9; }
-        .news-content p { font-size: 18px; line-height: 1.5; color: #333; margin: 10px 0; }
-        
-        /* Кнопка удаления */
-        .del-btn { display: none; color: #ff3b30; border: 1px solid #ff3b30; background: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-bottom: 10px; }
-
-        /* Админка */
-        #admin-panel { display: none; background: #f4f4f4; padding: 20px; border-radius: 10px; border: 2px solid #000; margin-bottom: 20px; }
-        input, textarea { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        .btn { background: #000; color: #fff; padding: 15px; border: none; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
-        .btn-red { background: #ff3b30; }
-
-        /* Нижнее меню */
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; border-top: 1px solid #eee; padding: 10px 0; justify-content: space-around; z-index: 1000; }
-        .nav-item { text-align: center; font-size: 10px; color: #8e8e93; font-weight: bold; }
-        .nav-item.active { color: #28a745; }
-    </style>
-</head>
-<body>
-
-<header><h1 onclick="handleSecretClick()">Новости Tommy</h1></header>
-
-<div class="container">
-    <div id="admin-panel">
-        <input type="text" id="post-title" placeholder="ЗАГОЛОВОК">
-        <input type="text" id="img-url" placeholder="Имя фото (например 1.jpg) или ссылка">
-        <textarea id="news-text" rows="5" placeholder="Текст новости..."></textarea>
-        <button class="btn" onclick="publishNews()">ОПУБЛИКОВАТЬ</button>
-        <button class="btn btn-red" onclick="clearAll()">УДАЛИТЬ ВСЁ (СБРОС)</button>
     </div>
-
-    <div id="news-container">
-        </div>
 </div>
 
 <nav class="bottom-nav">
@@ -103,16 +58,4 @@
         const code = decodeURIComponent(escape(atob(data.content)));
         const start = "";
         const parts = code.split(start);
-        const final = parts[0] + start + "\n" + document.getElementById('news-container').innerHTML + "\n    </div>\n</div>\n\n<nav" + code.split('<nav')[1];
-
-        await fetch(`https://api.github.com/repos/${REPO}/contents/index.html`, {
-            method: "PUT",
-            headers: { "Authorization": `token ${TOKEN}` },
-            body: JSON.stringify({ message: "Update", content: btoa(unescape(encodeURIComponent(final))), sha: data.sha })
-        });
-        alert("Готово! Обнови страницу через минуту.");
-        location.reload();
-    }
-</script>
-</body>
-</html>
+        const final = parts[0] + start + "\n" + document.getElementById('news-container').innerHTML + "\n    </div>\n</div>\n\n
