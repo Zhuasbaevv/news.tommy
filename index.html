@@ -1,9 +1,50 @@
-<
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новости Tommy</title>
+    <style>
+        /* Стили зашиты намертво, чтобы не слетали */
+        body { font-family: -apple-system, sans-serif; margin: 0; background: #fff; padding-bottom: 80px; }
+        header { padding: 15px 20px; border-bottom: 1px solid #eee; background: #fff; position: sticky; top: 0; z-index: 1000; }
+        h1 { font-size: 22px; margin: 0; font-weight: 900; cursor: pointer; display: inline-block; }
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+        .news-card { margin-bottom: 30px; border-bottom: 1px solid #f2f2f2; padding-bottom: 20px; }
+        .news-title { font-size: 24px; font-weight: 800; line-height: 1.1; margin-bottom: 10px; color: #000; }
+        .news-card img { width: 100%; border-radius: 8px; margin: 10px 0; display: block; }
+        .news-content { font-size: 18px; line-height: 1.5; color: #333; }
+        
+        /* Скрытая админка */
+        #admin-panel { display: none; background: #f8f8f8; padding: 20px; border-radius: 12px; border: 2px solid #000; margin-bottom: 20px; }
+        input, textarea { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .btn { background: #000; color: #fff; padding: 15px; border: none; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-del { background: #ff3b30; margin-top: 10px; }
 
+        /* Навигация */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; border-top: 1px solid #eee; padding: 12px 0; z-index: 1000; }
+        .nav-item { flex: 1; text-align: center; font-size: 10px; color: #8e8e93; font-weight: bold; text-transform: uppercase; }
+        .nav-item div { font-size: 20px; margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+
+<header><h1 onclick="openAdmin()">Новости Tommy</h1></header>
+
+<div class="container">
+    <div id="admin-panel">
+        <input type="text" id="postTitle" placeholder="Заголовок">
+        <input type="text" id="postImg" placeholder="Имя фото (напр. 1.jpg)">
+        <textarea id="postText" rows="5" placeholder="Текст новости"></textarea>
+        <button class="btn" onclick="sendPost()">ОПУБЛИКОВАТЬ</button>
+        <button class="btn btn-del" onclick="clearAll()">УДАЛИТЬ ВСЁ</button>
     </div>
+
+    <div id="news-feed">
+</div>
 </div>
 
-<div class="nav">
+<div class="bottom-nav">
     <div class="nav-item" style="color:#28a745"><div>📰</div>NEWS</div>
     <div class="nav-item"><div>⚽</div>SPORT</div>
     <div class="nav-item"><div>🏥</div>HEALTH</div>
@@ -13,59 +54,65 @@
 <script>
     let token = "";
     const repo = "Zhuasbaevv/news.tommy";
-    let c = 0;
+    let clicks = 0;
 
-    function adminLogin() {
-        c++;
-        if(c >= 5) {
-            token = prompt("Токен:");
-            if(token) document.getElementById('admin-panel').style.display='block';
-            c = 0;
+    function openAdmin() {
+        clicks++;
+        if (clicks >= 5) {
+            token = prompt("Введите GitHub Token:");
+            if (token) document.getElementById('admin-panel').style.display = 'block';
+            clicks = 0;
         }
     }
 
-    async function add() {
-        const title = document.getElementById('t').value;
-        const img = document.getElementById('i').value;
-        const text = document.getElementById('tx').value;
-        const html = `<div class="news-card"><div class="news-title">${title}</div>${img ? `<img src="${img}">` : ''}<div class="news-content">${text}</div></div>`;
-        document.getElementById('feed').insertAdjacentHTML('afterbegin', html);
-        await save();
+    async function sendPost() {
+        const t = document.getElementById('postTitle').value;
+        const i = document.getElementById('postImg').value;
+        const tx = document.getElementById('postText').value;
+        const html = `\n<div class="news-card"><div class="news-title">${t}</div>${i ? `<img src="${i}">` : ''}<div class="news-content">${tx.replace(/\n/g, '<br>')}</div></div>`;
+        
+        document.getElementById('news-feed').insertAdjacentHTML('afterbegin', html);
+        await updateGH();
     }
 
-    async function clean() {
-        if(confirm("Удалить всё?")) {
-            document.getElementById('feed').innerHTML = '';
-            await save();
+    async function clearAll() {
+        if (confirm("Удалить все новости?")) {
+            document.getElementById('news-feed').innerHTML = '\n\n\n\n';
+            await updateGH();
         }
     }
 
-    async function save() {
+    async function updateGH() {
         const url = `https://api.github.com/repos/${repo}/contents/index.html`;
         const res = await fetch(url);
-        const data = await res.json();
-        const fullCode = decodeURIComponent(escape(atob(data.content)));
-        
-        const startMark = "";
-        const endMark = "</div>\n</div>\n\n<div class=\"nav\">";
-        
-        const part1 = fullCode.split(startMark)[0];
-        const part2 = fullCode.split(endMark)[1];
-        const newFeed = document.getElementById('feed').innerHTML;
-        
-        const finalContent = part1 + startMark + "\n" + newFeed + "\n    </div>\n</div>\n\n<div class=\"nav\">" + part2;
+        const fileData = await res.json();
+        const content = decodeURIComponent(escape(atob(fileData.content)));
 
-        await fetch(url, {
+        const start = "";
+        const end = "";
+        
+        const head = content.split(start)[0];
+        const tail = content.split(end)[1];
+        const middle = document.getElementById('news-feed').innerHTML;
+
+        const finalCode = head + start + middle + end + tail;
+
+        const response = await fetch(url, {
             method: "PUT",
             headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-                message: "update",
-                content: btoa(unescape(encodeURIComponent(finalContent))),
-                sha: data.sha
+                message: "Update News",
+                content: btoa(unescape(encodeURIComponent(finalCode))),
+                sha: fileData.sha
             })
         });
-        alert("Готово! Подожди 1 минуту и обнови страницу.");
-        location.reload();
+
+        if (response.ok) {
+            alert("Успешно! Сайт обновится через минуту.");
+            location.reload();
+        } else {
+            alert("Ошибка сохранения! Проверьте токен.");
+        }
     }
 </script>
 </body>
