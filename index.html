@@ -9,159 +9,152 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     
     <style>
-        :root { --main: #1a1a1a; --accent: #ff4757; --bg: #f4f7f6; }
-        body { font-family: 'Helvetica Neue', sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
+        body { font-family: 'Trebuchet MS', sans-serif; background: #0f0f0f; color: #e0e0e0; margin: 0; padding-bottom: 50px; }
+        header { background: #1a1a1a; padding: 25px; text-align: center; border-bottom: 4px solid #ff4757; cursor: pointer; }
+        h1 { margin: 0; letter-spacing: 3px; font-size: 28px; color: #fff; }
+        .container { max-width: 650px; margin: auto; padding: 15px; }
         
-        header { background: var(--main); color: white; padding: 30px; text-align: center; border-bottom: 5px solid var(--accent); }
-        .container { max-width: 800px; margin: auto; padding: 20px; }
-
-        /* Админка */
-        #admin-panel { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 40px; }
-        .admin-locked { text-align: center; padding: 20px; border: 2px dashed #ccc; border-radius: 15px; cursor: pointer; }
+        /* Скрытая админка */
+        #admin-panel { background: #222; padding: 20px; border-radius: 12px; display: none; margin-bottom: 30px; border: 1px solid #333; }
+        input, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #333; color: #fff; border: 1px solid #444; border-radius: 6px; box-sizing: border-box; }
+        .btn-pub { background: #ff4757; color: white; border: none; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; border-radius: 6px; font-size: 16px; }
         
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
-        .file-label { display: inline-block; background: #eee; padding: 10px; border-radius: 8px; cursor: pointer; margin: 10px 0; }
+        /* Карточки новостей */
+        .post { background: #1a1a1a; margin-bottom: 30px; border-radius: 12px; overflow: hidden; border: 1px solid #222; position: relative; transition: 0.3s; }
+        .post:hover { border-color: #444; }
+        .post img { width: 100%; max-height: 400px; object-fit: cover; display: block; }
+        .post-info { padding: 20px; }
+        .post-info h2 { margin: 0 0 12px 0; color: #ff4757; font-size: 22px; }
+        .post-info p { line-height: 1.6; color: #ccc; margin: 0; white-space: pre-wrap; }
+        .date { font-size: 11px; color: #666; margin-bottom: 8px; }
         
-        button { background: var(--accent); color: white; border: none; padding: 15px 30px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; }
-        button:hover { background: #ff6b81; }
-
-        /* Посты */
-        .post { background: white; border-radius: 15px; overflow: hidden; margin-bottom: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); position: relative; }
-        .post img { width: 100%; max-height: 450px; object-fit: cover; display: block; }
-        .post-content { padding: 20px; }
-        .post h2 { margin: 0 0 10px 0; color: var(--main); }
-        .post p { color: #444; line-height: 1.6; white-space: pre-wrap; }
-        .post .date { font-size: 12px; color: #aaa; margin-bottom: 10px; }
-        
-        .del-btn { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: white; border-radius: 50%; width: 30px; height: 30px; border: none; cursor: pointer; display: none; }
-        .post:hover .del-btn { display: block; }
-        .hidden { display: none !important; }
+        /* Кнопка удаления */
+        .del-btn { position: absolute; top: 10px; right: 10px; background: rgba(255, 71, 87, 0.8); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; display: none; z-index: 5; }
+        .admin-mode .del-btn { display: block; }
+        .hidden { display: none; }
     </style>
 </head>
-<body>
+<body id="body">
 
-<header>
+<header onclick="activateAdmin()">
     <h1>НОВОСТИ ТОММИ</h1>
 </header>
 
 <div class="container">
-    <div id="lock-screen" class="admin-locked" onclick="checkPass()">
-        🔒 Нажмите, чтобы войти как Томми
+    <div id="admin-panel">
+        <h2 style="text-align:center; color: #fff;">Админ-панель</h2>
+        <input type="text" id="post-title" placeholder="Заголовок новости">
+        <textarea id="post-text" rows="5" placeholder="Текст новости..."></textarea>
+        <p style="font-size: 13px; color: #888;">Добавить фото:</p>
+        <input type="file" id="post-file" accept="image/*" style="background: none; border: none;">
+        <button class="btn-pub" onclick="publish()">ОПУБЛИКОВАТЬ</button>
+        <p id="upload-status" style="text-align: center; color: #ff4757;"></p>
     </div>
 
-    <div id="admin-panel" class="hidden">
-        <h3>Новый пост</h3>
-        <input type="text" id="title" placeholder="Заголовок темы...">
-        <textarea id="content" rows="5" placeholder="Что произошло?"></textarea>
-        
-        <label class="file-label">
-            📸 Выбрать фото с устройства
-            <input type="file" id="photoInput" accept="image/*" class="hidden">
-        </label>
-        <div id="status"></div>
-        
-        <button id="pubBtn" onclick="uploadAndPublish()">Опубликовать новость</button>
+    <div id="feed">
+        <p style="text-align:center;">Загрузка свежих новостей...</p>
     </div>
-
-    <div id="news-feed"></div>
 </div>
 
 <script>
-    // ВСТАВЬТЕ СВОЙ CONFIG НИЖЕ
+    // Твой конфиг уже здесь!
     const firebaseConfig = {
-        apiKey: "КЛЮЧ",
-        authDomain: "ID.firebaseapp.com",
-        projectId: "ID",
-        storageBucket: "ID.appspot.com",
-        messagingSenderId: "ID",
-        appId: "ID"
+        apiKey: "AIzaSyD6NVFOGnCVVgzh-ijtAK_bUWmewRqm8vY",
+        authDomain: "tommynews-a46bb.firebaseapp.com",
+        projectId: "tommynews-a46bb",
+        storageBucket: "tommynews-a46bb.firebasestorage.app",
+        messagingSenderId: "263117878730",
+        appId: "1:263117878730:web:9f88d07d8305d9169bcb33"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const storage = firebase.storage();
 
-    let isTommy = false;
-
-    // 1. Простая проверка пароля
-    function checkPass() {
-        const pass = prompt("Введите пароль админа:");
-        if (pass === "1234") { // ЗАМЕНИТЕ "1234" НА СВОЙ ПАРОЛЬ
-            isTommy = true;
-            document.getElementById('admin-panel').classList.remove('hidden');
-            document.getElementById('lock-screen').classList.add('hidden');
-            renderPosts(); // Перерисовать, чтобы появились кнопки удаления
-        } else {
-            alert("Неверно!");
+    // Вход в админку (5 кликов по заголовку)
+    let clicks = 0;
+    function activateAdmin() {
+        clicks++;
+        if (clicks >= 5) {
+            let pass = prompt("Введите пароль Томми:");
+            if (pass === "777") { // Можешь сменить пароль здесь
+                document.getElementById('admin-panel').style.display = 'block';
+                document.getElementById('body').classList.add('admin-mode');
+                alert("Доступ открыт!");
+            }
+            clicks = 0;
         }
     }
 
-    // 2. Функция загрузки фото и данных
-    async function uploadAndPublish() {
-        const title = document.getElementById('title').value;
-        const content = document.getElementById('content').value;
-        const file = document.getElementById('photoInput').files[0];
-        const btn = document.getElementById('pubBtn');
-        const status = document.getElementById('status');
+    // Функция публикации
+    async function publish() {
+        const title = document.getElementById('post-title').value;
+        const text = document.getElementById('post-text').value;
+        const file = document.getElementById('post-file').files[0];
+        const status = document.getElementById('upload-status');
 
-        if (!title || !content) return alert("Заполни текст!");
-        
-        btn.disabled = true;
-        status.innerText = "Загрузка... подождите";
+        if (!title || !text) return alert("Заполни заголовок и текст!");
 
-        let imageUrl = "";
+        status.innerText = "Публикация... подожди";
+        let photoUrl = "";
 
-        // Если фото выбрано, загружаем его в Storage
-        if (file) {
-            const storageRef = storage.ref('news_photos/' + Date.now() + "_" + file.name);
-            const snapshot = await storageRef.put(file);
-            imageUrl = await snapshot.ref.getDownloadURL();
+        try {
+            if (file) {
+                const ref = storage.ref('news/' + Date.now() + "_" + file.name);
+                await ref.put(file);
+                photoUrl = await ref.getDownloadURL();
+            }
+
+            await db.collection("posts").add({
+                title: title,
+                text: text,
+                img: photoUrl,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Очистка
+            document.getElementById('post-title').value = "";
+            document.getElementById('post-text').value = "";
+            document.getElementById('post-file').value = "";
+            status.innerText = "Опубликовано!";
+            setTimeout(() => status.innerText = "", 3000);
+
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка! Проверь, включены ли Firestore и Storage в консоли Firebase (Test Mode)");
         }
-
-        // Сохраняем пост в базу
-        await db.collection("tommy_news").add({
-            title,
-            content,
-            image: imageUrl,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        // Сброс формы
-        document.getElementById('title').value = "";
-        document.getElementById('content').value = "";
-        document.getElementById('photoInput').value = "";
-        btn.disabled = false;
-        status.innerText = "Опубликовано!";
     }
 
-    // 3. Отображение новостей
-    db.collection("tommy_news").orderBy("timestamp", "desc").onSnapshot(snapshot => {
-        const feed = document.getElementById('news-feed');
+    // Загрузка постов в реальном времени
+    db.collection("posts").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+        const feed = document.getElementById('feed');
+        if (snapshot.empty) {
+            feed.innerHTML = "<p style='text-align:center;'>Новостей пока нет.</p>";
+            return;
+        }
         feed.innerHTML = "";
         snapshot.forEach(doc => {
-            const post = doc.data();
-            const date = post.timestamp ? post.timestamp.toDate().toLocaleString() : "...";
-            
+            const data = doc.data();
+            const dateStr = data.createdAt ? data.createdAt.toDate().toLocaleString() : "";
             feed.innerHTML += `
                 <div class="post">
-                    ${isTommy ? `<button class="del-btn" onclick="deletePost('${doc.id}')">×</button>` : ''}
-                    ${post.image ? `<img src="${post.image}">` : ''}
-                    <div class="post-content">
-                        <div class="date">${date}</div>
-                        <h2>${post.title}</h2>
-                        <p>${post.content}</p>
+                    <button class="del-btn" onclick="deletePost('${doc.id}')">Удалить</button>
+                    ${data.img ? `<img src="${data.img}">` : ''}
+                    <div class="post-info">
+                        <div class="date">${dateStr}</div>
+                        <h2>${data.title}</h2>
+                        <p>${data.text}</p>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
     });
 
+    // Удаление
     async function deletePost(id) {
-        if(confirm("Удалить новость?")) {
-            await db.collection("tommy_news").doc(id).delete();
+        if (confirm("Точно удалить эту новость?")) {
+            await db.collection("posts").doc(id).delete();
         }
     }
 </script>
-
 </body>
 </html>
