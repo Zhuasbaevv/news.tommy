@@ -1,4 +1,42 @@
-<
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TengriNews Clone</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+<header>
+    <div class="container">
+        <h1>TENGRINEWS CLONE</h1>
+        <nav>
+            <ul>
+                <li><a href="#">Главная</a></li>
+                <li><a href="#">Политика</a></li>
+                <li><a href="#">Спорт</a></li>
+                <li><button id="adminBtn">Админка</button></li>
+            </ul>
+        </nav>
+    </div>
+</header>
 
-!
+<main class="container">
+    <section id="adminPanel" class="hidden">
+        <h2>Добавить новость</h2>
+        <input type="text" id="newsTitle" placeholder="Заголовок">
+        <textarea id="newsContent" placeholder="Текст новости"></textarea>
+        <button onclick="addNews()">Опубликовать</button>
+    </section>
+
+    <section id="newsFeed">
+        <h2>Последние новости</h2>
+        <div id="postsContainer">
+            </div>
+    </section>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
